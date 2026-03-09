@@ -35,7 +35,7 @@ async function main() {
         });
 
         console.log('✅ Cronos Media Zerado e Pronto!');
-        console.log('📧 Login: admin@cronos.com.br | 🔑 Senha: admin123');
+        console.log('📧 Login: rafaalves@performanceoficial.com.br | 🔑 Senha: admin123');
     } catch (err) {
         console.error('❌ Erro no seed:', err);
     } finally {
