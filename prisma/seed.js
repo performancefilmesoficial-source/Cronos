@@ -22,6 +22,7 @@ async function main() {
                 email: 'admin@cronos.com.br',
                 password: hashedPassword,
                 role: 'ADMIN',
+                active: true,
             },
         });
 

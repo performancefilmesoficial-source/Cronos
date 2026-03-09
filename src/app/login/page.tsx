@@ -33,6 +33,14 @@ export default function LoginPage() {
             if (checkRes.ok) {
                 const status = await checkRes.json();
 
+                // Se usuário está pendente de aprovação
+                if (status.status === "pending_approval") {
+                    toast.warning("Acesso Pendente", {
+                        description: "Sua conta está aguardando aprovação do administrador. Você receberá um aviso assim que for liberado."
+                    });
+                    return;
+                }
+
                 // Se usuário existe mas não tem senha -> Primeiro Acesso
                 if (status.status === "no_password") {
                     toast.info("Primeiro acesso detectado!", {

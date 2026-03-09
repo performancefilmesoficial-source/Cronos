@@ -13,6 +13,10 @@ export async function POST(req: Request) {
             return NextResponse.json({ status: "not_found" });
         }
 
+        if (!user.active) {
+            return NextResponse.json({ status: "pending_approval" });
+        }
+
         if (!user.password) {
             return NextResponse.json({ status: "no_password" });
         }

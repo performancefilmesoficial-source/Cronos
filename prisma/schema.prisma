@@ -48,6 +48,7 @@ model User {
   password      String?
   whatsapp      String?
   role          Role      @default(SOCIAL_MEDIA)
+  active        Boolean   @default(false)
   image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
