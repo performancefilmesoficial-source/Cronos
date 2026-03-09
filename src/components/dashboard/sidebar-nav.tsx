@@ -8,13 +8,8 @@ import { signOut } from "next-auth/react"
 export function SidebarNav() {
     return (
         <div className="w-72 border-r border-border h-screen p-4 flex flex-col gap-6 bg-card/40 backdrop-blur-xl">
-            <div className="px-2 mb-2 mt-4 space-y-1">
-                <div className="flex items-center gap-2">
-                    <span className="font-black text-xl tracking-tighter text-foreground uppercase">
-                        Cronos <span className="text-primary">Media</span>
-                    </span>
-                </div>
-                <div className="h-0.5 w-12 bg-primary rounded-full opacity-50" />
+            <div className="px-2 mb-2 flex items-center justify-center">
+                <img src="/logo-cronos.png" alt="Cronos Logo" className="h-28 w-auto object-contain drop-shadow-lg" />
             </div>
 
             <div className="flex flex-col gap-1">

@@ -13,7 +13,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ status: "not_found" });
         }
 
-        if (!user.active) {
+        if (!(user as any).active) {
             return NextResponse.json({ status: "pending_approval" });
         }
 

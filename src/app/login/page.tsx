@@ -96,10 +96,10 @@ export default function LoginPage() {
             {/* Main Container */}
             <div className="relative z-10 w-full max-w-md px-4 animate-in fade-in zoom-in duration-500">
                 <div className="text-center mb-10">
-                    <h1 className="text-4xl font-black tracking-tight text-foreground mb-2">
-                        CRONOS <span className="text-primary">MEDIA</span>
-                    </h1>
-                    <p className="text-muted-foreground text-sm font-medium tracking-wide">Gestão Inteligente de Demandas</p>
+                    <div className="flex justify-center mb-6">
+                        <img src="/logo-cronos.png" alt="Cronos Media Logo" className="h-44 w-auto object-contain drop-shadow-2xl" />
+                    </div>
+                    <p className="text-muted-foreground text-sm font-medium tracking-wide opacity-80">Gestão Inteligente de Demandas</p>
                 </div>
 
                 <Card className="bg-card/50 backdrop-blur-2xl border-border shadow-2xl overflow-hidden rounded-[2rem]">
@@ -185,6 +185,6 @@ export default function LoginPage() {
                     &copy; {new Date().getFullYear()} Cronos Media &bull; Agency Innovation
                 </div>
             </div>
-        </div>
+        </div >
     )
 }
