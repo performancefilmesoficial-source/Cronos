@@ -19,7 +19,7 @@ async function main() {
         await prisma.user.create({
             data: {
                 name: 'Rafael Alves',
-                email: 'admin@cronos.com.br',
+                email: 'rafaalves@performanceoficial.com.br',
                 password: hashedPassword,
                 role: 'ADMIN',
                 active: true,
