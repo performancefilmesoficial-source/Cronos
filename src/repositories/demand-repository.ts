@@ -1,5 +1,4 @@
 import prisma from "@/lib/prisma/client";
-import { DemandStatus } from "@prisma/client";
 
 export class DemandRepository {
     static async getAll() {
@@ -32,7 +31,7 @@ export class DemandRepository {
             data: {
                 title: data.title,
                 type: data.type,
-                status: data.status as DemandStatus,
+                status: data.status as any,
                 theme: data.theme,
                 briefing: data.briefing,
                 caption: data.caption,
