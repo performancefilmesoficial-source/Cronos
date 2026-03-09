@@ -6,7 +6,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-# Install ALL deps (including devDependencies needed for build)
+# Install ALL deps including devDependencies (needed for tailwind/postcss at build time)
 RUN npm ci --include=dev
 
 # ---- Builder ----
@@ -16,8 +16,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV DATABASE_URL=file:/tmp/build.db
+# Use dev mode for build so devDeps are available
 ENV NODE_ENV=development
+ENV DATABASE_URL=file:/tmp/build.db
 
 RUN npx prisma generate && npm run build
 
@@ -36,19 +37,22 @@ RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
 
+# Create directories for Next.js cache and SQLite data
 RUN mkdir -p .next data
 RUN chown -R nextjs:nodejs .next data
 
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy prisma for migrations at startup
+# Copy prisma schema and client for migrations at runtime
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 
 USER nextjs
 
 EXPOSE 80
 
-CMD ["sh", "-c", "npx prisma migrate deploy 2>/dev/null || true && node server.js"]
+# Run migrations using the prisma binary already in node_modules, then start
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy 2>/dev/null || true && node server.js"]
