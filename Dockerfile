@@ -39,7 +39,7 @@ ENV PORT=80
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Run migrations and start
+# Run migrations, seed (optional/if needed), and start
 # We use full path to prisma to ensure it runs correctly from within standalone if needed, 
 # although we'll run it from /app first.
-CMD ["sh", "-c", "cd /app && (node_modules/.bin/prisma migrate deploy || npx prisma migrate deploy || true) && cd /app/.next/standalone && node server.js"]
+CMD ["sh", "-c", "cd /app && (node_modules/.bin/prisma migrate deploy || npx prisma migrate deploy || true) && (npx prisma db seed || true) && cd /app/.next/standalone && node server.js"]
