@@ -1,58 +1,35 @@
-FROM node:20-alpine AS base
+FROM node:20-alpine
 
-# ---- Deps ----
-FROM base AS deps
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl
+
 WORKDIR /app
 
+# Copy package files
 COPY package.json package-lock.json* ./
-# Install ALL deps including devDependencies (needed for tailwind/postcss at build time)
-RUN npm ci --include=dev
 
-# ---- Builder ----
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# Install ALL dependencies (including devDeps needed for build)
+RUN npm install
+
+# Copy source
 COPY . .
 
-ENV NEXT_TELEMETRY_DISABLED=1
-# Use dev mode for build so devDeps are available
-ENV NODE_ENV=development
+# Generate Prisma client
+RUN npx prisma generate
+
+# Set build env - use temp DB
 ENV DATABASE_URL=file:/tmp/build.db
-
-RUN npx prisma generate && npm run build
-
-# ---- Runner ----
-FROM base AS runner
-WORKDIR /app
-
-RUN apk add --no-cache openssl
-
-ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=80
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Build the app
+RUN npm run build
 
-COPY --from=builder /app/public ./public
-
-# Create directories for Next.js cache and SQLite data
-RUN mkdir -p .next data
-RUN chown -R nextjs:nodejs .next data
-
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Copy prisma schema and client for migrations at runtime
-COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
-
-USER nextjs
+# Create data directory for SQLite
+RUN mkdir -p /app/data
 
 EXPOSE 80
+ENV PORT=80
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Run migrations using the prisma binary already in node_modules, then start
-CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy 2>/dev/null || true && node server.js"]
+# Run migrations and start
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy 2>/dev/null || npx prisma migrate deploy 2>/dev/null || true && node .next/standalone/server.js"]
