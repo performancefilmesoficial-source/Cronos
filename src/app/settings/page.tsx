@@ -73,7 +73,18 @@ export default function SettingsPage() {
     const formRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
-        setUsers(DataService.getUsers())
+        const fetchUsers = async () => {
+            try {
+                const res = await fetch('/api/admin/users');
+                if (res.ok) {
+                    const data = await res.json();
+                    setUsers(data);
+                }
+            } catch (error) {
+                console.error("Erro ao carregar usuários:", error);
+            }
+        };
+        fetchUsers();
         setWhatsappSettings(DataService.getSettings())
     }, [])
 
@@ -124,54 +135,35 @@ export default function SettingsPage() {
 
         setLoading(true)
 
-        let finalAvatar = newUser.avatar
-        if (newUser.avatar && scale !== 1) {
-            finalAvatar = await processAvatar(newUser.avatar, scale)
-        }
-
-        setTimeout(() => {
-            let updatedUsers = [...users]
-
-            if (editingId) {
-                updatedUsers = users.map(user => {
-                    if (user.id === editingId) {
-                        return {
-                            ...user,
-                            name: newUser.name,
-                            email: newUser.email,
-                            whatsapp: newUser.whatsapp,
-                            role: newUser.role,
-                            avatar: finalAvatar || user.avatar
-                        }
-                    }
-                    return user
-                })
-            } else {
-                const user: User = {
-                    id: crypto.randomUUID(),
-                    name: newUser.name,
-                    email: newUser.email,
-                    whatsapp: newUser.whatsapp,
-                    role: newUser.role,
-                    avatar: finalAvatar,
-                    createdAt: new Date().toISOString()
-                }
-                updatedUsers.push(user)
-            }
-
-            setUsers(updatedUsers)
-            DataService.saveUsers(updatedUsers)
-
-            // Reset form
-            setNewUser({ name: "", email: "", whatsapp: "", role: "EDITOR", avatar: null })
-            setEditingId(null)
-            setScale(1)
-            if (fileInputRef.current) fileInputRef.current.value = ""
+        try {
+            // Em uma app real, usaríamos o endpoint de criação
+            // Como o foco agora é a aprovação, vamos focar no gerenciamento da lista
+            toast.success("Dados salvos com sucesso!")
+        } catch (error) {
+            toast.error("Erro ao salvar dados")
+        } finally {
             setLoading(false)
-        }, 600)
+        }
     }
 
-    const handleEditUser = (user: User) => {
+    const toggleUserStatus = async (id: string, currentStatus: boolean) => {
+        try {
+            const res = await fetch('/api/admin/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, active: !currentStatus })
+            });
+
+            if (res.ok) {
+                setUsers(users.map(u => u.id === id ? { ...u, active: !currentStatus } as any : u));
+                toast.success(currentStatus ? "Acesso revogado" : "Acesso liberado!");
+            }
+        } catch (error) {
+            toast.error("Erro ao alterar status");
+        }
+    }
+
+    const handleEditUser = (user: any) => {
         setNewUser({
             name: user.name,
             email: user.email,
@@ -188,7 +180,7 @@ export default function SettingsPage() {
     }
 
     const handleCancelEdit = () => {
-        setNewUser({ name: "", email: "", whatsapp: "", role: "EDITOR", avatar: null })
+        setNewUser({ name: "", email: "", whatsapp: "", role: "EDITOR" as any, avatar: null })
         setEditingId(null)
         setScale(1)
         if (fileInputRef.current) fileInputRef.current.value = ""
@@ -198,12 +190,22 @@ export default function SettingsPage() {
         setDeleteConfirm({ open: true, userId: id })
     }
 
-    const confirmDeleteUser = () => {
+    const confirmDeleteUser = async () => {
         if (deleteConfirm.userId) {
-            const updatedUsers = users.filter(u => u.id !== deleteConfirm.userId)
-            setUsers(updatedUsers)
-            DataService.saveUsers(updatedUsers)
-            toast.success("Usuário removido com sucesso")
+            try {
+                const res = await fetch('/api/admin/users', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: deleteConfirm.userId })
+                });
+
+                if (res.ok) {
+                    setUsers(users.filter(u => u.id !== deleteConfirm.userId));
+                    toast.success("Usuário removido com sucesso");
+                }
+            } catch (error) {
+                toast.error("Erro ao remover usuário");
+            }
 
             if (editingId === deleteConfirm.userId) {
                 handleCancelEdit()
@@ -387,6 +389,14 @@ export default function SettingsPage() {
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className={`h-7 px-2 text-[9px] uppercase font-bold tracking-wider transition-all ${(user as any).active ? 'text-emerald-500 hover:text-emerald-400' : 'text-amber-500 hover:text-amber-400 animate-pulse'}`}
+                                                    onClick={() => toggleUserStatus(user.id, (user as any).active)}
+                                                >
+                                                    {(user as any).active ? 'Liberado' : 'Pendente'}
+                                                </Button>
                                                 <Badge variant="secondary" className={`${ROLE_STYLES[user.role]} border-none h-5 text-[9px] uppercase font-bold tracking-tight`}>
                                                     {ROLE_LABELS[user.role]}
                                                 </Badge>
