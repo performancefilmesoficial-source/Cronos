@@ -39,6 +39,9 @@ ENV PORT=80
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Run migrations, seed, and start
-# We ensure the database directory exists and use absolute path for DATABASE_URL
-CMD ["sh", "-c", "mkdir -p /app/data && export DATABASE_URL=${DATABASE_URL} && echo \"Using DB: $DATABASE_URL\" && cd /app && npx prisma migrate deploy && npx prisma db seed && cd /app/.next/standalone && node server.js"]
+# Copy and prepare entrypoint script
+COPY scripts/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Run the initialization script
+ENTRYPOINT ["/app/entrypoint.sh"]
