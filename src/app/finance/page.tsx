@@ -18,8 +18,8 @@ export default async function FinancePage() {
         include: { client: true }
     })
 
-    const totalIncome = transactions.filter(t => t.type === 'INCOME').reduce((acc, t) => acc + t.value, 0)
-    const totalExpense = transactions.filter(t => t.type === 'EXPENSE').reduce((acc, t) => acc + t.value, 0)
+    const totalIncome = transactions.filter((t: typeof transactions[0]) => t.type === 'INCOME').reduce((acc: number, t: typeof transactions[0]) => acc + t.value, 0)
+    const totalExpense = transactions.filter((t: typeof transactions[0]) => t.type === 'EXPENSE').reduce((acc: number, t: typeof transactions[0]) => acc + t.value, 0)
     const balance = totalIncome - totalExpense
 
     return (
