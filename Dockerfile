@@ -26,6 +26,11 @@ RUN npm run build
 # Create data directory for SQLite
 RUN mkdir -p /app/data
 
+# Copy static and public files for standalone output
+# This is required for Next.js standalone mode to serve static assets
+RUN cp -r .next/static .next/standalone/.next/static
+RUN cp -r public .next/standalone/public
+
 EXPOSE 80
 ENV PORT=80
 ENV NODE_ENV=production
