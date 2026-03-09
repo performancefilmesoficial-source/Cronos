@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ message: "Senha definida com sucesso!" }, { status: 200 });
 
-    } catch (error) {
-        return NextResponse.json({ error: "Erro interno no servidor" }, { status: 500 });
+    } catch {
+        return NextResponse.json({ error: "Erro ao configurar senha" }, { status: 500 });
     }
 }

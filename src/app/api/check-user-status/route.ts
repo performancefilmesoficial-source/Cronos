@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ status: "has_password" });
 
-    } catch (error) {
-        return NextResponse.json({ error: "Erro interno no servidor" }, { status: 500 });
+    } catch {
+        return NextResponse.json({ error: "Erro ao verificar status do usuário" }, { status: 500 });
     }
 }
