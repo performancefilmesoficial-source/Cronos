@@ -23,6 +23,27 @@ export default function LoginPage() {
         setIsLoading(true)
 
         try {
+            // Verifica status do usuário
+            const checkRes = await fetch("/api/check-user-status", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email })
+            });
+
+            if (checkRes.ok) {
+                const status = await checkRes.json();
+
+                // Se usuário existe mas não tem senha -> Primeiro Acesso
+                if (status.status === "no_password") {
+                    toast.info("Primeiro acesso detectado!", {
+                        description: "Vamos configurar sua senha agora."
+                    });
+                    router.push(`/setup-password?email=${email}`);
+                    return;
+                }
+            }
+
+            // Segue o fluxo normal de login
             const result = await signIn("credentials", {
                 email,
                 password,
@@ -138,7 +159,12 @@ export default function LoginPage() {
 
                             <div className="flex flex-col items-center gap-3">
                                 <span className="text-[10px] text-muted-foreground/40 uppercase tracking-widest">Ainda não tem acesso?</span>
-                                <Button variant="outline" className="h-10 border-border bg-transparent text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-accent w-full rounded-xl transition-all">
+                                <Button
+                                    variant="outline"
+                                    type="button"
+                                    onClick={() => router.push("/register")}
+                                    className="h-10 border-border bg-transparent text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-accent w-full rounded-xl transition-all"
+                                >
                                     Solicitar cadastro
                                 </Button>
                             </div>
