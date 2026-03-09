@@ -12,67 +12,50 @@ export function MasterCalendar() {
             <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-bold tracking-tight">Calendário Geral</h2>
                 <div className="flex gap-2">
-                    {/* Filters placeholders */}
+                    {/* Filtros profissionais aqui */}
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
-                {/* Simple Calendar View for now - will expand to full scheduler later */}
-                <Card className="col-span-1 md:col-span-2">
+                <Card className="col-span-1 md:col-span-2 bg-black/20 border-white/5">
                     <CardHeader>
-                        <CardTitle>Visão Mensal</CardTitle>
+                        <CardTitle className="text-sm font-bold uppercase tracking-widest text-zinc-500">Visão Mensal</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <Calendar
                             mode="single"
                             selected={date}
                             onSelect={setDate}
-                            className="rounded-md border w-full flex justify-center"
+                            className="rounded-md border-none w-full flex justify-center"
                             classNames={{
                                 month: "w-full space-y-4",
                                 table: "w-full border-collapse space-y-1",
-                                head_row: "flex w-full justify-between",
-                                row: "flex w-full mt-2 justify-between",
-                                cell: "text-center text-sm p-0 flex-1 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 h-24 border border-border/50",
-                                day: "h-full w-full p-0 font-normal aria-selected:opacity-100 hover:bg-muted/50 transition-colors",
+                                head_row: "flex w-full justify-between mb-4",
+                                row: "flex w-full mt-1 justify-between gap-1",
+                                cell: "text-center text-sm p-0 flex-1 relative h-20 border border-white/5 rounded-xl hover:bg-white/5 transition-colors",
+                                day: "h-full w-full p-2 font-normal text-left flex flex-col items-start justify-start",
                             }}
                             components={{
-                                DayContent: (props: any) => {
-                                    const day = props.date.getDate()
-                                    // Mock logic to show events on specific days
-                                    const hasReels = day % 3 === 0
-                                    const hasDesign = day % 4 === 0
-
-                                    return (
-                                        <div className="w-full h-full flex flex-col items-start p-1 relative group">
-                                            <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground">{day}</span>
-
-                                            <div className="flex flex-col gap-1 w-full mt-1">
-                                                {hasReels && (
-                                                    <div className="text-[10px] bg-orange-500/20 text-orange-300 px-1 rounded truncate w-full">
-                                                        Reels Nike
-                                                    </div>
-                                                )}
-                                                {hasDesign && (
-                                                    <div className="text-[10px] bg-blue-500/20 text-blue-300 px-1 rounded truncate w-full">
-                                                        Carrossel
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )
-                                }
+                                DayContent: ({ date: d }: { date: Date }) => (
+                                    <div className="w-full h-full flex flex-col items-start gap-1">
+                                        <span className="text-[10px] font-bold text-zinc-600">{d.getDate()}</span>
+                                        {/* Posts reais aparecerão aqui vindo do banco */}
+                                    </div>
+                                )
                             } as any}
                         />
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="bg-black/20 border-white/5">
                     <CardHeader>
-                        <CardTitle>Demandas do dia {date?.getDate()}</CardTitle>
+                        <CardTitle className="text-sm font-bold uppercase tracking-widest text-zinc-500">Agenda do Dia</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground text-sm">Nenhuma demanda selecionada.</p>
+                    <CardContent className="flex flex-col items-center justify-center h-[300px] text-center">
+                        <div className="p-4 rounded-full bg-white/5 mb-4">
+                            <h4 className="text-2xl font-black text-white">{date?.getDate()}</h4>
+                        </div>
+                        <p className="text-zinc-500 text-xs font-medium uppercase tracking-widest">Nenhuma demanda para este dia.</p>
                     </CardContent>
                 </Card>
             </div>

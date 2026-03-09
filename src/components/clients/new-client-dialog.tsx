@@ -48,6 +48,13 @@ export function NewClientDialog({ onClientCreate, children, editClient, external
     const [primaryColor, setPrimaryColor] = useState("#ec4899")
     const [secondaryColor, setSecondaryColor] = useState("#8b5cf6")
     const [accentColor, setAccentColor] = useState("#f59e0b")
+    const [palette, setPalette] = useState<string[]>([])
+    const [credentials, setCredentials] = useState<any[]>([])
+
+    // Social state for current entry
+    const [socialPlatform, setSocialPlatform] = useState("")
+    const [socialLogin, setSocialLogin] = useState("")
+    const [socialPassword, setSocialPassword] = useState("")
 
     const isEditing = !!editClient
 
@@ -58,12 +65,16 @@ export function NewClientDialog({ onClientCreate, children, editClient, external
             setPrimaryColor(editClient.primaryColor || "#ec4899")
             setSecondaryColor(editClient.secondaryColor || "#8b5cf6")
             setAccentColor(editClient.accentColor || "#f59e0b")
+            setPalette(editClient.palette || [])
+            setCredentials(editClient.credentials || [])
         } else if (!open) {
             // Reset on close
             setName("")
             setPrimaryColor("#ec4899")
             setSecondaryColor("#8b5cf6")
             setAccentColor("#f59e0b")
+            setPalette([])
+            setCredentials([])
         }
     }, [editClient, open])
     const logoInputRef = useRef<HTMLInputElement>(null)
@@ -244,6 +255,8 @@ export function NewClientDialog({ onClientCreate, children, editClient, external
                 handle: editClient?.handle || "@novo_cliente",
                 logo: editClient?.logo || "https://github.com/shadcn.png",
                 accentColor: accentColor,
+                palette: palette,
+                credentials: credentials,
                 stats: editClient?.stats || { drafts: 0, adjustments: 0, approvals: 0, approved: 0 }
             }
             onClientCreate(clientData)
@@ -395,46 +408,81 @@ export function NewClientDialog({ onClientCreate, children, editClient, external
 
                     <TabsContent value="redes" className="space-y-4 mt-4">
                         <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
-                            {[
-                                { id: "instagram", label: "Instagram", placeholder: "@username ou https://instagram.com/..." },
-                                { id: "tiktok", label: "TikTok", placeholder: "@username ou https://tiktok.com/..." },
-                                { id: "youtube", label: "YouTube", placeholder: "https://youtube.com/@channel" },
-                                { id: "facebook", label: "Facebook", placeholder: "https://facebook.com/page" },
-                                { id: "linkedin", label: "LinkedIn", placeholder: "https://linkedin.com/in/..." }
-                            ].map((network) => (
-                                <div key={network.id} className="rounded-xl border border-white/5 bg-white/[0.02] p-4 space-y-3">
-                                    <Label htmlFor={network.id} className="text-sm font-semibold">{network.label}</Label>
-                                    <div className="flex gap-2">
-                                        <Input
-                                            id={network.id}
-                                            placeholder={network.placeholder}
-                                            className="bg-black/20 border-white/10 focus-visible:ring-primary/50"
-                                        />
-                                        <Button variant="outline" size="icon" className="border-white/10 bg-white/5 hover:bg-white/10 shrink-0">
-                                            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-muted-foreground"><path d="M3 2C2.44772 2 2 2.44772 2 3V12C2 12.5523 2.44772 13 3 13H12C12.5523 13 13 12.5523 13 12V8.5C13 8.22386 13.2239 8 13.5 8C13.7761 8 14 8.22386 14 8.5V12C14 13.1046 13.1046 14 12 14H3C1.89543 14 1 13.1046 1 12V3C1 1.89543 1.89543 1 3 1H6.5C6.77614 1 7 1.22386 7 1.5C7 1.77614 6.77614 2 6.5 2H3ZM12.8536 2.14645C12.9015 2.19439 12.9377 2.24964 12.9621 2.30861C12.9861 2.36669 12.9996 2.4303 13 2.497L13 2.5V2.50049V5.5C13 5.77614 12.7761 6 12.5 6C12.2239 6 12 5.77614 12 5.5V3.20711L9.35355 5.85355C9.15829 6.04882 8.84171 6.04882 8.64645 5.85355C8.45118 5.65829 8.45118 5.34171 8.64645 5.14645L11.2929 2.5H9C8.72386 2.5 8.5 2.27614 8.5 2C8.5 1.72386 8.72386 1.5 9 1.5H12C12.2761 1.5 12.5 1.72386 12.5 2C12.5 2.0697 12.4861 2.13331 12.4621 2.19139C12.4377 2.25036 12.4015 2.30561 12.3536 2.35355L12.8536 2.14645Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path></svg>
-                                        </Button>
+                            <div className="bg-white/[0.03] border border-white/5 p-4 rounded-xl space-y-4">
+                                <Label className="text-sm font-bold">Adicionar Novo Acesso</Label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[10px] uppercase tracking-wider text-zinc-500">Plataforma</Label>
+                                        <Select value={socialPlatform} onValueChange={setSocialPlatform}>
+                                            <SelectTrigger className="h-9 bg-black/40 border-white/5 text-xs">
+                                                <SelectValue placeholder="Selecione" />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-[#1c1c1e] border-white/10 text-white">
+                                                <SelectItem value="Instagram">Instagram</SelectItem>
+                                                <SelectItem value="TikTok">TikTok</SelectItem>
+                                                <SelectItem value="YouTube">YouTube</SelectItem>
+                                                <SelectItem value="Facebook">Facebook</SelectItem>
+                                                <SelectItem value="Meta">Meta</SelectItem>
+                                                <SelectItem value="Site">Site</SelectItem>
+                                                <SelectItem value="Outros">Outros</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor={`${network.id}-login`} className="text-[11px] text-muted-foreground uppercase tracking-wider">Login / E-mail</Label>
-                                            <Input
-                                                id={`${network.id}-login`}
-                                                placeholder="usuario@email.com"
-                                                className="bg-black/30 border-white/10 focus-visible:ring-primary/50 text-xs h-8"
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor={`${network.id}-senha`} className="text-[11px] text-muted-foreground uppercase tracking-wider">Senha</Label>
-                                            <Input
-                                                id={`${network.id}-senha`}
-                                                type="password"
-                                                placeholder="••••••••"
-                                                className="bg-black/30 border-white/10 focus-visible:ring-primary/50 text-xs h-8"
-                                            />
-                                        </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[10px] uppercase tracking-wider text-zinc-500">Login / E-mail</Label>
+                                        <Input
+                                            value={socialLogin}
+                                            onChange={(e) => setSocialLogin(e.target.value)}
+                                            placeholder="@usuario"
+                                            className="h-9 bg-black/40 border-white/5 text-xs"
+                                        />
                                     </div>
                                 </div>
-                            ))}
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] uppercase tracking-wider text-zinc-500">Senha</Label>
+                                    <Input
+                                        value={socialPassword}
+                                        onChange={(e) => setSocialPassword(e.target.value)}
+                                        type="password"
+                                        placeholder="••••••••"
+                                        className="h-9 bg-black/40 border-white/5 text-xs"
+                                    />
+                                </div>
+                                <Button
+                                    className="w-full h-9 bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 text-xs font-bold"
+                                    onClick={() => {
+                                        if (!socialPlatform || !socialLogin) return
+                                        setCredentials([...credentials, { platform: socialPlatform, login: socialLogin, password: socialPassword }])
+                                        setSocialPlatform("")
+                                        setSocialLogin("")
+                                        setSocialPassword("")
+                                    }}
+                                >
+                                    Adicionar à Lista
+                                </Button>
+                            </div>
+
+                            {credentials.length > 0 && (
+                                <div className="space-y-2 pt-2">
+                                    <Label className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold">Acessos Adicionados</Label>
+                                    {credentials.map((cred, i) => (
+                                        <div key={i} className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-lg">
+                                            <div className="flex flex-col">
+                                                <span className="text-[11px] font-bold text-primary">{cred.platform}</span>
+                                                <span className="text-[10px] text-zinc-400">{cred.login}</span>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7 text-red-500 hover:bg-red-500/10"
+                                                onClick={() => setCredentials(credentials.filter((_, idx) => idx !== i))}
+                                            >
+                                                <Plus className="h-3 w-3 rotate-45" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </TabsContent>
 
@@ -677,6 +725,33 @@ export function NewClientDialog({ onClientCreate, children, editClient, external
                                     </div>
                                 </div>
                                 <p className="text-[10px] text-zinc-500">Usada em alertas e notificações.</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4 pt-4 border-t border-white/5">
+                            <Label className="text-base">Paleta de Cores Estendida</Label>
+                            <div className="flex flex-wrap gap-2">
+                                {palette.map((color, i) => (
+                                    <div key={i} className="group relative">
+                                        <div className="h-10 w-10 rounded-lg border border-white/10" style={{ backgroundColor: color }} />
+                                        <button
+                                            className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => setPalette(palette.filter((_, idx) => idx !== i))}
+                                        >
+                                            <Plus className="h-2.5 w-2.5 rotate-45 text-white" />
+                                        </button>
+                                    </div>
+                                ))}
+                                <div className="relative h-10 w-10 rounded-lg border-2 border-dashed border-white/10 flex items-center justify-center hover:border-primary/50 transition-colors group">
+                                    <Plus className="h-4 w-4 text-zinc-600 group-hover:text-primary" />
+                                    <input
+                                        type="color"
+                                        className="absolute inset-0 opacity-0 cursor-pointer"
+                                        onChange={(e) => {
+                                            setPalette([...palette, e.target.value])
+                                        }}
+                                    />
+                                </div>
                             </div>
                         </div>
 

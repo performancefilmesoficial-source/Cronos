@@ -1,25 +1,25 @@
 "use client"
 
 import * as React from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Plus, MoreHorizontal, Image as ImageIcon, UserPlus } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 import { DemandCard } from "./demand-card"
-import { Demand, DemandStatus } from "@/lib/data"
+import { Demand } from "@/lib/data"
 
 const DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
 
+import { NewDemandDialog } from "@/components/demands/new-demand-dialog"
+import { Plus } from "lucide-react"
+
 interface BigCalendarProps {
     demands: Demand[]
-    onUpdateDemand: (demand: Demand) => void
+    onUpdateDemand?: (demand: Demand) => void
+    initialClients?: any[]
 }
 
-export function BigCalendar({ demands, onUpdateDemand }: BigCalendarProps) {
+export function BigCalendar({ demands, onUpdateDemand, initialClients }: BigCalendarProps) {
     const [currentDate, setCurrentDate] = React.useState(new Date())
     const [viewMode, setViewMode] = React.useState<'month' | 'week'>('month')
 
@@ -87,39 +87,39 @@ export function BigCalendar({ demands, onUpdateDemand }: BigCalendarProps) {
     }
 
     return (
-        <div className="flex flex-col h-full bg-background/40 backdrop-blur-xl rounded-2xl border border-white/5 shadow-2xl overflow-hidden ring-1 ring-white/5">
+        <div className="flex flex-col h-full bg-card rounded-2xl border border-border shadow-2xl overflow-hidden">
             {/* Calendar Header */}
-            <div className="flex items-center justify-between p-6 border-b border-white/5 bg-gradient-to-r from-background/50 to-background/50">
+            <div className="flex items-center justify-between p-6 border-b border-border bg-card">
                 <div className="flex items-center gap-6">
-                    <h2 className="text-2xl font-bold capitalize tracking-tight text-white/90 min-w-[200px]">
+                    <h2 className="text-2xl font-bold capitalize tracking-tight text-foreground/90 min-w-[200px]">
                         {monthName}
                     </h2>
-                    <div className="flex items-center p-1 rounded-lg border border-white/5 bg-background/20 gap-1">
-                        <Button variant="ghost" size="icon" onClick={previous} className="h-7 w-7 hover:bg-white/5 text-white/60">
+                    <div className="flex items-center p-1 rounded-lg border border-border bg-muted/30 gap-1">
+                        <Button variant="ghost" size="icon" onClick={previous} className="h-7 w-7 hover:bg-muted text-muted-foreground">
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setCurrentDate(new Date())}
-                            className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider text-white/60 hover:text-white"
+                            className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
                         >
                             Hoje
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={next} className="h-7 w-7 hover:bg-white/5 text-white/60">
+                        <Button variant="ghost" size="icon" onClick={next} className="h-7 w-7 hover:bg-muted text-muted-foreground">
                             <ChevronRight className="h-4 w-4" />
                         </Button>
                     </div>
                 </div>
 
-                <div className="flex items-center p-1 rounded-xl border border-white/5 bg-black/20">
+                <div className="flex items-center p-1 rounded-xl border border-border bg-muted/20">
                     <Button
                         variant={viewMode === 'month' ? 'secondary' : 'ghost'}
                         size="sm"
                         onClick={() => setViewMode('month')}
                         className={cn(
                             "h-8 px-4 text-xs font-bold uppercase tracking-widest transition-all",
-                            viewMode === 'month' ? "bg-white/10 text-white shadow-lg" : "text-white/40 hover:text-white/70"
+                            viewMode === 'month' ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                         )}
                     >
                         Mês
@@ -130,7 +130,7 @@ export function BigCalendar({ demands, onUpdateDemand }: BigCalendarProps) {
                         onClick={() => setViewMode('week')}
                         className={cn(
                             "h-8 px-4 text-xs font-bold uppercase tracking-widest transition-all",
-                            viewMode === 'week' ? "bg-white/10 text-white shadow-lg" : "text-white/40 hover:text-white/70"
+                            viewMode === 'week' ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                         )}
                     >
                         Semana
@@ -139,7 +139,7 @@ export function BigCalendar({ demands, onUpdateDemand }: BigCalendarProps) {
             </div>
 
             {/* Grid Header */}
-            <div className="grid grid-cols-7 border-b border-white/5 bg-muted/10">
+            <div className="grid grid-cols-7 border-b border-border bg-muted/10">
                 {DAYS.map(day => (
                     <div key={day} className="py-2 text-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                         {day}
@@ -149,20 +149,14 @@ export function BigCalendar({ demands, onUpdateDemand }: BigCalendarProps) {
 
             {/* Grid Body */}
             <div className={cn(
-                "grid grid-cols-7 flex-1 overflow-hidden bg-background/20",
+                "grid grid-cols-7 flex-1 overflow-hidden bg-card",
                 viewMode === 'month' ? "auto-rows-[1fr]" : "auto-rows-fr"
             )}>
                 {calendarDays.map((dateObj, index) => {
-                    if (!dateObj.day && viewMode === 'month') return <div key={index} className="border-b border-r border-white/5 bg-white/[0.01]" />
+                    if (!dateObj.day && viewMode === 'month') return <div key={index} className="border-b border-r border-border bg-muted/5" />
 
-                    // In week mode, we use dateObj.date to match demands accurately
                     const dayDemands = demands.filter((d: any) => {
-                        if (dateObj.date) {
-                            // Check if demand day matches dateObj.day AND it's the current month (simplified logic based on how data is structured)
-                            // If demand had a full date string, it would be better. For now we use the 'day' field match.
-                            return d.day === dateObj.day && dateObj.currentMonth
-                        }
-                        return false
+                        return d.day === dateObj.day && dateObj.currentMonth
                     })
 
                     const isToday = dateObj.date &&
@@ -174,9 +168,9 @@ export function BigCalendar({ demands, onUpdateDemand }: BigCalendarProps) {
                         <div
                             key={index}
                             className={cn(
-                                "border-b border-r border-white/5 p-2 min-h-[120px] flex flex-col gap-1 transition-all group relative",
-                                isToday ? "bg-primary/[0.05]" : "hover:bg-white/[0.02]",
-                                !dateObj.currentMonth && viewMode === 'week' ? "opacity-40 bg-black/5" : ""
+                                "border-b border-r border-border p-2 min-h-[120px] flex flex-col gap-1 transition-all group relative",
+                                isToday ? "bg-primary/[0.03] dark:bg-primary/[0.05]" : "hover:bg-muted/10",
+                                !dateObj.currentMonth && viewMode === 'week' ? "opacity-30 bg-muted/20" : ""
                             )}
                         >
                             <div className="flex items-center justify-between mb-1">
@@ -186,11 +180,6 @@ export function BigCalendar({ demands, onUpdateDemand }: BigCalendarProps) {
                                 )}>
                                     {dateObj.day}
                                 </span>
-                                {viewMode === 'week' && (
-                                    <span className="text-[8px] text-white/20 font-bold uppercase tracking-widest">
-                                        {dateObj.date?.toLocaleDateString('pt-BR', { month: 'short' })}
-                                    </span>
-                                )}
                             </div>
 
                             <div className="flex flex-col gap-1 mt-1 overflow-y-auto no-scrollbar max-h-full pb-8">
@@ -209,5 +198,3 @@ export function BigCalendar({ demands, onUpdateDemand }: BigCalendarProps) {
         </div>
     )
 }
-
-

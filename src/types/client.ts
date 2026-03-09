@@ -1,3 +1,18 @@
+export type Competitor = {
+    id: string
+    name: string
+    url: string
+    type: 'site' | 'instagram' | 'tiktok' | 'youtube' | 'others'
+}
+
+export type BrandingFile = {
+    id: string
+    name: string
+    url: string
+    type: 'image' | 'video' | 'pdf' | 'doc'
+    thumbnail?: string
+}
+
 export type Client = {
     id: string
     name: string
@@ -14,37 +29,14 @@ export type Client = {
         approvals: number
         approved: number
     }
+    brandingFiles?: BrandingFile[]
+    competitors?: Competitor[]
+    palette?: string[]
+    credentials?: {
+        platform: string
+        login: string
+        password?: string
+    }[]
 }
 
-export const MOCK_CLIENTS: Client[] = [
-    {
-        id: "1",
-        name: "Performance Filmes",
-        handle: "@performancefilmesoficial",
-        logo: "https://github.com/shadcn.png",
-        accentColor: "#EF4444",
-        industry: "Agência",
-        activeContract: true,
-        stats: { drafts: 8, adjustments: 0, approvals: 0, approved: 0 }
-    },
-    {
-        id: "2",
-        name: "Nike",
-        handle: "@nike",
-        logo: "https://avatar.vercel.sh/nike",
-        accentColor: "#000000",
-        industry: "Esportes",
-        activeContract: true,
-        stats: { drafts: 3, adjustments: 2, approvals: 1, approved: 12 }
-    },
-    {
-        id: "3",
-        name: "Nubank",
-        handle: "@nubank",
-        logo: "https://avatar.vercel.sh/nubank",
-        accentColor: "#820AD1",
-        industry: "Financeiro",
-        activeContract: true,
-        stats: { drafts: 0, adjustments: 1, approvals: 4, approved: 45 }
-    },
-]
+// O MOCK_CLIENTS foi removido para entregar o sistema zerado conforme solicitado.

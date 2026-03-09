@@ -63,10 +63,7 @@ export default function PostEditorPage() {
     }, [previewUrl])
 
     return (
-        <div className="flex h-screen w-full bg-background text-foreground overflow-hidden font-sans">
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-            <div className="absolute right-0 top-0 -z-10 h-[500px] w-[500px] bg-primary/20 opacity-20 blur-[120px] rounded-full" />
-            <div className="absolute left-0 bottom-0 -z-10 h-[500px] w-[500px] bg-orange-600/10 opacity-20 blur-[120px] rounded-full" />
+        <div className="flex h-screen w-full bg-[#0a0a0a] text-foreground overflow-hidden font-sans">
 
             <SidebarNav />
             <main className="flex-1 overflow-y-auto bg-transparent p-6 flex flex-col relative z-10">

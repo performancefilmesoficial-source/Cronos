@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Check, X, Image as ImageIcon, Send } from "lucide-react"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { useParams } from "next/navigation"
@@ -125,11 +124,11 @@ export default function ClientPortalPage() {
 
                             {/* Header: Avatar + Client Name (Social Style) */}
                             <div className="px-5 pt-2 pb-4 flex items-center gap-3 z-40 relative">
-                                <Avatar className="h-8 w-8 ring-1 ring-white/20 shadow-lg">
-                                    <AvatarFallback className="bg-gradient-to-tr from-yellow-400 via-red-500 to-orange-500 text-transparent bg-clip-text font-bold text-xs">
+                                <div className="h-8 w-8 rounded-full bg-black ring-1 ring-white/20 shadow-lg flex items-center justify-center shrink-0">
+                                    <span className="bg-gradient-to-tr from-yellow-400 via-red-500 to-orange-500 text-transparent bg-clip-text font-bold text-xs">
                                         {demand.client[0]}
-                                    </AvatarFallback>
-                                </Avatar>
+                                    </span>
+                                </div>
                                 <span className="font-bold text-sm text-white tracking-tight drop-shadow-md">{demand.client}</span>
                             </div>
 

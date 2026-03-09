@@ -124,12 +124,6 @@ export function ClientAccordionItem({ client }: ClientAccordionItemProps) {
                                     </DropdownMenuContent>
                                 </DropdownMenu>
 
-                                <Button className="bg-primary hover:bg-primary/90 text-white gap-2 flex-1" asChild>
-                                    <Link href={`/clients/${client.id}/posts/new`}>
-                                        <ImageIcon className="h-4 w-4" />
-                                        Adicionar Mídia
-                                    </Link>
-                                </Button>
                             </div>
                         </div>
                     </div>

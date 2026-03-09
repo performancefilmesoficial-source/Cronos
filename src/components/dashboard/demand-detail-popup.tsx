@@ -17,13 +17,15 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Image as ImageIcon, Clock, CheckCircle, AlertCircle, Play, FileText, Share2, UserMinus, UserPlus, Link, Send, X } from "lucide-react"
+import { Image as ImageIcon, Clock, CheckCircle, AlertCircle, Play, FileText, Share2, UserMinus, UserPlus, Link, Send, X, Calendar, Globe, Rocket, Instagram, Twitter, Facebook, Youtube, Monitor, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { toast } from "sonner"
 
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { DataService, User, Demand, DemandStatus } from "@/lib/data"
+import { MediaDB } from "@/lib/media-db"
 
 // Removed local definitions to avoid mismatch
 
@@ -31,12 +33,15 @@ interface DemandDetailPopupProps {
     demand: Demand
     isOpen: boolean
     onOpenChange: (open: boolean) => void
-    onUpdate: (updatedDemand: Demand) => void
+    onUpdate: (updated: Demand) => void
+    showScheduler?: boolean
+    initialTab?: "details" | "scheduler"
 }
 
-export function DemandDetailPopup({ demand, isOpen, onOpenChange, onUpdate }: DemandDetailPopupProps) {
-    const [localDemand, setLocalDemand] = React.useState<Demand>(demand)
+export function DemandDetailPopup({ isOpen, onOpenChange, demand: initialDemand, onUpdate, showScheduler = true, initialTab = "details" }: DemandDetailPopupProps) {
+    const [localDemand, setLocalDemand] = React.useState(initialDemand)
     const [users, setUsers] = React.useState<User[]>([])
+    const [resolvedMediaUrl, setResolvedMediaUrl] = React.useState<string | null>(null)
     const fileInputRef = React.useRef<HTMLInputElement>(null)
 
     React.useEffect(() => {
@@ -50,10 +55,35 @@ export function DemandDetailPopup({ demand, isOpen, onOpenChange, onUpdate }: De
     // Sync local state when demand prop changes (when opening for a new post)
     React.useEffect(() => {
         setLocalDemand({
-            ...demand,
-            status: demand.assignedTo ? demand.status : null
+            ...initialDemand,
+            status: initialDemand.assignedTo ? initialDemand.status : null
         })
-    }, [demand])
+    }, [initialDemand])
+
+    // Resolve Media URL (IndexedDB support)
+    React.useEffect(() => {
+        const resolve = async () => {
+            const url = localDemand.mediaUrl
+            if (!url) {
+                setResolvedMediaUrl(null)
+                return
+            }
+
+            if (url.startsWith("idb:")) {
+                const mediaId = url.replace("idb:", "")
+                try {
+                    const data = await MediaDB.getMedia(mediaId)
+                    setResolvedMediaUrl(data)
+                } catch (e) {
+                    console.error("Error resolving IDB media", e)
+                    setResolvedMediaUrl(null)
+                }
+            } else {
+                setResolvedMediaUrl(url)
+            }
+        }
+        resolve()
+    }, [localDemand.mediaUrl])
 
     const handleSave = () => {
         onUpdate(localDemand)
@@ -80,6 +110,15 @@ export function DemandDetailPopup({ demand, isOpen, onOpenChange, onUpdate }: De
 
     const [message, setMessage] = React.useState("")
 
+    const [publishTab, setPublishTab] = React.useState<"details" | "scheduler">(initialTab)
+
+    // Reset tab when closing/reopening with new demand
+    React.useEffect(() => {
+        if (isOpen) {
+            setPublishTab(initialTab)
+        }
+    }, [isOpen, initialTab])
+
     const handleSendMessage = () => {
         if (!message.trim()) return
 
@@ -99,8 +138,71 @@ export function DemandDetailPopup({ demand, isOpen, onOpenChange, onUpdate }: De
         setLocalDemand(updatedDemand)
         setMessage("")
 
-        // Immediate save for chat
         onUpdate(updatedDemand)
+    }
+
+    const [scheduledDate, setScheduledDate] = React.useState(localDemand.date)
+    const [scheduledTime, setScheduledTime] = React.useState("10:00")
+    const [selectedPlatforms, setSelectedPlatforms] = React.useState<string[]>([])
+    const [isPublishing, setIsPublishing] = React.useState(false)
+
+    const togglePlatform = (p: string) => {
+        setSelectedPlatforms(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p])
+    }
+
+    const handleDirectPost = async () => {
+        if (selectedPlatforms.length === 0) {
+            toast.error("Selecione ao menos uma rede social")
+            return
+        }
+        setIsPublishing(true)
+        const toastId = toast.loading("Enviando para o middleware de postagem...", { id: "publishing" })
+
+        try {
+            const response = await fetch("/api/social/publish", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    platforms: selectedPlatforms,
+                    content: localDemand.briefing || localDemand.title,
+                    mediaUrl: localDemand.mediaUrl,
+                    scheduledDate: `${scheduledDate} ${scheduledTime}`,
+                    clientId: localDemand.client
+                })
+            })
+
+            const data = await response.json()
+
+            if (data.success) {
+                toast.success("Conteúdo programado via middleware!", {
+                    id: toastId,
+                    description: `Fila de postagem: ${selectedPlatforms.join(", ")}`
+                })
+                const updated = { ...localDemand, status: "Programado" as const }
+                setLocalDemand(updated)
+                onUpdate(updated)
+            } else {
+                throw new Error(data.error)
+            }
+        } catch (error) {
+            toast.error("Erro ao conectar com o middleware", { id: toastId })
+            console.error(error)
+        } finally {
+            setIsPublishing(false)
+        }
+    }
+
+    const handleOpenPlatform = (platform: string) => {
+        const urls: Record<string, string> = {
+            "Instagram": "https://business.facebook.com/creatorstudio",
+            "TikTok": "https://www.tiktok.com/p/upload",
+            "YouTube": "https://studio.youtube.com",
+            "Facebook": "https://business.facebook.com/latest/home"
+        }
+        window.open(urls[platform] || "https://google.com", "_blank")
+        toast.info(`Direcionando para ${platform}...`, {
+            description: "Use os acessos salvos no cadastro do cliente."
+        })
     }
 
     const isAlert = !localDemand.assignedTo || !localDemand.status
@@ -125,10 +227,6 @@ export function DemandDetailPopup({ demand, isOpen, onOpenChange, onUpdate }: De
                                             size="sm"
                                             className="h-8 text-[10px] text-white/70 hover:text-white hover:bg-white/5 gap-2 font-bold uppercase tracking-wider"
                                         >
-                                            <Avatar className="h-5 w-5">
-                                                <AvatarFallback className="bg-primary/20 text-primary text-[9px] uppercase">{localDemand.assignedTo[0]}</AvatarFallback>
-                                                {users.find(u => u.name === localDemand.assignedTo)?.avatar && <AvatarImage src={users.find(u => u.name === localDemand.assignedTo)?.avatar || ""} />}
-                                            </Avatar>
                                             {localDemand.assignedTo}
                                         </Button>
                                     ) : (
@@ -158,10 +256,6 @@ export function DemandDetailPopup({ demand, isOpen, onOpenChange, onUpdate }: De
                                                 onUpdate(updated)
                                             }}
                                         >
-                                            <Avatar className="h-4 w-4">
-                                                <AvatarFallback className="bg-white/10 text-[8px] uppercase">{user.name[0]}</AvatarFallback>
-                                                {user.avatar && <AvatarImage src={user.avatar} />}
-                                            </Avatar>
                                             {user.name}
                                         </DropdownMenuItem>
                                     ))}
@@ -197,7 +291,7 @@ export function DemandDetailPopup({ demand, isOpen, onOpenChange, onUpdate }: De
 
                     <div className="px-6 py-2 flex items-center justify-between relative z-10 border-b border-white/5">
                         <div className="flex gap-2">
-                            {(["Em andamento", "Aguardando aprovação", "Aguardando ajuste", "Aprovado"] as DemandStatus[]).map((s) => (
+                            {!showScheduler && (["Em andamento", "Aguardando aprovação", "Aguardando ajuste", "Aprovado"] as DemandStatus[]).map((s) => (
                                 <Button
                                     key={s}
                                     variant="outline"
@@ -228,57 +322,91 @@ export function DemandDetailPopup({ demand, isOpen, onOpenChange, onUpdate }: De
                             ))}
                         </div>
 
+                        {showScheduler && (
+                            <div className="flex p-1 bg-white/5 rounded-xl border border-white/5">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={cn("h-7 px-3 text-[10px] font-bold uppercase", publishTab === "details" ? "bg-white/10 text-white" : "text-zinc-500")}
+                                    onClick={() => setPublishTab("details")}
+                                >
+                                    <FileText className="w-3 h-3 mr-1.5" />
+                                    Detalhes
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={cn("h-7 px-3 text-[10px] font-bold uppercase", publishTab === "scheduler" ? "bg-white/10 text-white" : "text-zinc-500")}
+                                    onClick={() => setPublishTab("scheduler")}
+                                >
+                                    <Calendar className="w-3 h-3 mr-1.5" />
+                                    Agendar
+                                </Button>
+                            </div>
+                        )}
+
 
                     </div>
 
                     <div className="p-6 space-y-6 relative z-10 flex-1 overflow-y-auto max-h-[70vh]">
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-1 gap-4">
-                                <div className="space-y-1.5">
-                                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Tema do Conteúdo</Label>
-                                    <Input
-                                        value={localDemand.theme || ""}
-                                        onChange={(e) => setLocalDemand({ ...localDemand, theme: e.target.value })}
-                                        className="bg-white/5 border-white/5 focus-visible:ring-primary/50 text-sm h-10 rounded-xl"
-                                        placeholder="Defina o tema..."
-                                    />
+                        {publishTab === "details" ? (
+                            <div className="space-y-4 animate-in fade-in duration-300">
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Tema do Conteúdo</Label>
+                                        <Input
+                                            value={localDemand.theme || ""}
+                                            onChange={(e) => setLocalDemand({ ...localDemand, theme: e.target.value })}
+                                            className="bg-white/5 border-white/5 focus-visible:ring-primary/50 text-sm h-10 rounded-xl"
+                                            placeholder="Defina o tema..."
+                                        />
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Briefing / Descrição</Label>
+                                        <Textarea
+                                            value={localDemand.briefing || ""}
+                                            onChange={(e) => setLocalDemand({ ...localDemand, briefing: e.target.value })}
+                                            className="bg-white/5 border-white/5 focus-visible:ring-primary/50 text-sm min-h-[200px] rounded-xl resize-none"
+                                            placeholder="Escreva as instruções..."
+                                        />
+                                    </div>
                                 </div>
 
+                                {/* Media Section */}
                                 <div className="space-y-1.5">
-                                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Briefing / Descrição</Label>
-                                    <Textarea
-                                        value={localDemand.briefing || ""}
-                                        onChange={(e) => setLocalDemand({ ...localDemand, briefing: e.target.value })}
-                                        className="bg-white/5 border-white/5 focus-visible:ring-primary/50 text-sm min-h-[200px] rounded-xl resize-none"
-                                        placeholder="Escreva as instruções..."
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Conditional Media Field */}
-                            {(localDemand.status === "Aguardando aprovação" || localDemand.status === "Aprovado" || localDemand.status === "Aguardando ajuste") && (
-                                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
-                                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold font-sans">Mídia Final</Label>
+                                    <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold font-sans">Mídia do Conteúdo</Label>
                                     <input
                                         type="file"
                                         ref={fileInputRef}
                                         className="hidden"
                                         onChange={handleFileChange}
-                                        accept="image/*,video/*"
+                                        accept="image/*,video/*,application/pdf"
                                     />
                                     <div
                                         onClick={handleMediaClick}
                                         className="aspect-video bg-zinc-900 rounded-xl border border-dashed border-white/10 flex flex-col items-center justify-center gap-3 group hover:border-primary/50 transition-colors cursor-pointer overflow-hidden relative"
                                     >
-                                        {localDemand.mediaUrl ? (
+                                        {resolvedMediaUrl ? (
                                             <>
-                                                <div className="absolute inset-0 bg-cover bg-center opacity-40 blur-sm" style={{ backgroundImage: `url(${localDemand.mediaUrl})` }} />
-                                                <div className="relative z-10 flex flex-col items-center gap-2">
-                                                    <div className="h-12 w-12 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
-                                                        <CheckCircle className="h-6 w-6 text-emerald-500" />
+                                                {resolvedMediaUrl.startsWith("data:video") || resolvedMediaUrl.endsWith(".mp4") ? (
+                                                    <video src={resolvedMediaUrl} className="absolute inset-0 w-full h-full object-cover opacity-60" autoPlay muted loop />
+                                                ) : (
+                                                    <div className="absolute inset-0 bg-cover bg-center opacity-40 blur-sm" style={{ backgroundImage: `url(${resolvedMediaUrl})` }} />
+                                                )}
+
+                                                {resolvedMediaUrl.startsWith("data:image") || !resolvedMediaUrl.includes("video") ? (
+                                                    <img src={resolvedMediaUrl} alt="" className="relative z-10 max-h-full object-contain shadow-2xl rounded-lg" />
+                                                ) : (
+                                                    <div className="relative z-10 flex flex-col items-center gap-2">
+                                                        <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
+                                                            <Play className="h-6 w-6 text-primary" />
+                                                        </div>
                                                     </div>
-                                                    <p className="text-xs font-bold text-emerald-500">Mídia Selecionada</p>
-                                                    <p className="text-[10px] text-muted-foreground">Clique para alterar</p>
+                                                )}
+
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
+                                                    <p className="text-xs font-bold text-white bg-black/60 px-3 py-1.5 rounded-full border border-white/10">Alterar Mídia</p>
                                                 </div>
                                             </>
                                         ) : (
@@ -287,15 +415,123 @@ export function DemandDetailPopup({ demand, isOpen, onOpenChange, onUpdate }: De
                                                     <ImageIcon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
                                                 </div>
                                                 <div className="text-center">
-                                                    <p className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">Inserir Mídia Final</p>
+                                                    <p className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">Inserir Mídia</p>
                                                     <p className="text-[10px] text-zinc-600">Arraste ou clique para enviar</p>
                                                 </div>
                                             </>
                                         )}
                                     </div>
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                                <div className="p-6 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl flex items-center gap-4">
+                                    <div className="h-12 w-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                                        <Rocket className="h-6 w-6 text-emerald-500" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-bold text-white uppercase tracking-wider">Publicação Profissional</h4>
+                                        <p className="text-xs text-zinc-400">Configure o agendamento e a postagem direta via API.</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <Label className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest">1. Escolha as redes</Label>
+                                    <div className="grid grid-cols-4 gap-3">
+                                        {[
+                                            { id: "Instagram", icon: Instagram, color: "text-pink-500" },
+                                            { id: "TikTok", icon: Monitor, color: "text-cyan-400" },
+                                            { id: "YouTube", icon: Youtube, color: "text-red-500" },
+                                            { id: "Facebook", icon: Facebook, color: "text-blue-500" }
+                                        ].map(plat => (
+                                            <button
+                                                key={plat.id}
+                                                onClick={() => togglePlatform(plat.id)}
+                                                className={cn(
+                                                    "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all",
+                                                    selectedPlatforms.includes(plat.id)
+                                                        ? "bg-white/10 border-primary/50 shadow-lg shadow-primary/10"
+                                                        : "bg-white/5 border-white/5 hover:border-white/10"
+                                                )}
+                                            >
+                                                <plat.icon className={cn("h-6 w-6 mb-2", plat.color)} />
+                                                <span className="text-[10px] font-bold text-white">{plat.id}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest">2. Data Programada</Label>
+                                        <Input
+                                            type="date"
+                                            className="bg-white/5 border-white/5 h-11 rounded-xl text-sm"
+                                            value={scheduledDate}
+                                            onChange={(e) => setScheduledDate(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] uppercase font-bold text-zinc-500 tracking-widest">3. Horário</Label>
+                                        <Input
+                                            type="time"
+                                            className="bg-white/5 border-white/5 h-11 rounded-xl text-sm"
+                                            value={scheduledTime}
+                                            onChange={(e) => setScheduledTime(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="p-1.5 bg-black/40 rounded-2xl border border-white/5 space-y-1">
+                                    <div className="p-3">
+                                        <h5 className="text-[10px] font-bold text-zinc-500 uppercase flex items-center gap-2 mb-3">
+                                            <Globe className="h-3 w-3" />
+                                            Ações de Postagem
+                                        </h5>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            <Button
+                                                variant="outline"
+                                                className="justify-between h-12 bg-white/5 border-white/5 hover:bg-white/10 group rounded-xl"
+                                                onClick={handleDirectPost}
+                                                disabled={isPublishing}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <Rocket className="h-4 w-4 text-emerald-400" />
+                                                    <span className="text-xs font-bold text-white">POSTAR DIRETAMENTE AGORA (API)</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Badge className="bg-emerald-500/10 text-emerald-500 text-[9px] font-black border-none">SEGURO</Badge>
+                                                    <Lock className="h-3 w-3 text-zinc-600" />
+                                                </div>
+                                            </Button>
+
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="outline" className="justify-between h-12 bg-white/5 border-white/5 hover:bg-white/10 group rounded-xl">
+                                                        <div className="flex items-center gap-3">
+                                                            <Monitor className="h-4 w-4 text-primary" />
+                                                            <span className="text-xs font-bold text-white uppercase">Abrir Programador da Rede</span>
+                                                        </div>
+                                                        <Share2 className="h-4 w-4 text-zinc-600" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="bg-[#121214] border-white/10 text-white min-w-[200px]">
+                                                    {["Instagram", "TikTok", "YouTube", "Facebook"].map(p => (
+                                                        <DropdownMenuItem
+                                                            key={p}
+                                                            className="text-xs py-2.5 cursor-pointer hover:bg-primary/20"
+                                                            onClick={() => handleOpenPlatform(p)}
+                                                        >
+                                                            Abrir {p} Business Suite
+                                                        </DropdownMenuItem>
+                                                    ))}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="p-6 pt-4 border-t border-white/5 flex items-center justify-between bg-[#0A0A0B] sticky bottom-0 z-20">

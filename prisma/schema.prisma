@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  SOCIAL_MEDIA
+  DESIGNER
+  MANAGER
+  FINANCIAL
+  CLIENT
+}
+
+enum DemandStatus {
+  EM_ANDAMENTO
+  AGUARDANDO_APROVACAO
+  APROVADO
+  AGUARDANDO_AJUSTE
+  PROGRAMADO
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionStatus {
+  PREVISTO
+  PAGO
+  ATRASADO
+}
+
+enum WhatsAppEngine {
+  EVOLUTION
+  META
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  password      String?
+  whatsapp      String?
+  role          Role      @default(SOCIAL_MEDIA)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  demands       Demand[]  @relation("AssignedDemands")
+  managedClients Client[] @relation("ClientManager")
+}
+
+model Client {
+  id            String    @id @default(cuid())
+  name          String
+  status        String    @default("Ativo")
+  managerId     String?
+  manager       User?     @relation("ClientManager", fields: [managerId], references: [id])
+  driveUrl      String?
+  branding      Json?     
+  demands       Demand[]
+  transactions  Transaction[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Demand {
+  id          String       @id @default(cuid())
+  title       String
+  type        String
+  status      DemandStatus @default(EM_ANDAMENTO)
+  theme       String?
+  briefing    String?
+  caption     String?
+  mediaUrl    String?
+  date        DateTime
+  clientId    String
+  client      Client       @relation(fields: [clientId], references: [id])
+  assignedToId String?
+  assignedTo  User?        @relation("AssignedDemands", fields: [assignedToId], references: [id])
+  comments    Comment[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([clientId])
+  @@index([assignedToId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  text      String
+  type      String   
+  authorName String
+  demandId  String
+  demand    Demand   @relation(fields: [demandId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Transaction {
+  id          String            @id @default(cuid())
+  type        TransactionType
+  description String
+  value       Float
+  date        DateTime
+  category    String
+  status      TransactionStatus @default(PREVISTO)
+  isRecurrent Boolean           @default(false)
+  clientId    String?
+  client      Client?           @relation(fields: [clientId], references: [id])
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model SystemSettings {
+  id                   String         @id @default("singleton")
+  whatsappEngine       WhatsAppEngine @default(META)
+  notificationsEnabled Boolean        @default(true)
+  
+  metaToken           String?
+  metaPhoneId         String?
+  metaRecipientId     String?
+
+  evolutionToken     String?
+  evolutionUrl       String?
+  evolutionGroupId   String?
+
+  updatedAt          DateTime       @updatedAt
+}
