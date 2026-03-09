@@ -7,6 +7,7 @@ export interface User {
     whatsapp: string
     role: UserRole
     avatar?: string | null
+    active: boolean
     createdAt: string
 }
 

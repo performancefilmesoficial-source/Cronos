@@ -379,32 +379,32 @@ export default function SettingsPage() {
                                 <div className="space-y-2">
                                     {users.map((user) => (
                                         <div key={user.id} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${editingId === user.id ? 'border-primary/50 bg-primary/5' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.04]'}`}>
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center">
+                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                <div className="h-8 w-8 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center shrink-0">
                                                     <UserIcon className="h-4 w-4 text-zinc-600" />
                                                 </div>
-                                                <div>
-                                                    <p className="font-bold text-xs text-white">{user.name}</p>
-                                                    <p className="text-[10px] text-zinc-500">{user.email}</p>
+                                                <div className="min-w-0 flex-1 pr-2">
+                                                    <p className="font-bold text-xs text-white truncate">{user.name}</p>
+                                                    <p className="text-[10px] text-zinc-500 truncate">{user.email}</p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-2 shrink-0 ml-auto">
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className={`h-7 px-2 text-[9px] uppercase font-bold tracking-wider transition-all ${(user as any).active ? 'text-emerald-500 hover:text-emerald-400' : 'text-amber-500 hover:text-amber-400 animate-pulse'}`}
-                                                    onClick={() => toggleUserStatus(user.id, (user as any).active)}
+                                                    className={`h-7 px-2 text-[9px] uppercase font-bold tracking-wider transition-all ${user.active ? 'text-emerald-500 hover:text-emerald-400' : 'text-amber-500 hover:text-amber-400 animate-pulse'}`}
+                                                    onClick={() => toggleUserStatus(user.id, user.active)}
                                                 >
-                                                    {(user as any).active ? 'Liberado' : 'Pendente'}
+                                                    {user.active ? 'Liberado' : 'Pendente'}
                                                 </Button>
-                                                <Badge variant="secondary" className={`${ROLE_STYLES[user.role]} border-none h-5 text-[9px] uppercase font-bold tracking-tight`}>
+                                                <Badge variant="secondary" className={`${ROLE_STYLES[user.role]} border-none h-5 text-[9px] uppercase font-bold tracking-tight shrink-0`}>
                                                     {ROLE_LABELS[user.role]}
                                                 </Badge>
-                                                <div className="flex gap-1 border-l border-white/10 pl-3">
-                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-500 hover:text-white" onClick={() => handleEditUser(user)}>
+                                                <div className="flex gap-0.5 border-l border-white/10 pl-2">
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-500 hover:text-white shrink-0" onClick={() => handleEditUser(user)}>
                                                         <Pencil className="h-3.5 w-3.5" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-500 hover:text-red-500" onClick={() => handleDeleteUser(user.id)}>
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-500 hover:text-red-500 shrink-0" onClick={() => handleDeleteUser(user.id)}>
                                                         <Trash2 className="h-3.5 w-3.5" />
                                                     </Button>
                                                 </div>
