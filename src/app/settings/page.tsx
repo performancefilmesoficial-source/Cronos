@@ -68,10 +68,58 @@ export default function SettingsPage() {
         meta_recipient_id: "",
         base_folder_path: ""
     })
+    const [uploadPath, setUploadPath] = useState("")
+    const [uploading, setUploading] = useState(false)
+    const genericFileInputRef = useRef<HTMLInputElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     const nameInputRef = useRef<HTMLInputElement>(null)
     const formRef = useRef<HTMLDivElement>(null)
+
+    const handleGenericUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setUploading(true)
+        const toastId = toast.loading(`Enviando ${file.name}...`)
+
+        try {
+            const reader = new FileReader()
+            reader.onload = async (event) => {
+                const base64 = event.target?.result as string
+                const base64Data = base64.split(',')[1]
+
+                const response = await fetch('/api/clients/upload-file', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fileName: file.name,
+                        fileBase64: base64Data,
+                        customPath: uploadPath
+                    }),
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    toast.success("Upload Concluído", {
+                        id: toastId,
+                        description: `Arquivo salvo em: ${data.path}`
+                    })
+                } else {
+                    toast.error("Erro no Upload", {
+                        id: toastId,
+                        description: data.error
+                    })
+                }
+            }
+            reader.readAsDataURL(file)
+        } catch (error) {
+            toast.error("Erro de Processamento", { id: toastId })
+        } finally {
+            setUploading(false)
+            if (genericFileInputRef.current) genericFileInputRef.current.value = ""
+        }
+    }
 
     useEffect(() => {
         const fetchData = async () => {
@@ -625,6 +673,38 @@ export default function SettingsPage() {
                                     </Button>
                                 </div>
                                 <p className="text-[10px] text-zinc-500 italic">Deixe vazio para usar a pasta raiz do projeto.</p>
+                            </div>
+
+                            <div className="pt-4 border-t border-white/5 space-y-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] uppercase font-bold text-zinc-500">Enviar Arquivo para Caminho Específico</Label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        <Input
+                                            placeholder="Subpasta (ex: ClienteX/Contratos)"
+                                            className="h-9 bg-white/5 border-white/10 text-sm"
+                                            value={uploadPath}
+                                            onChange={(e) => setUploadPath(e.target.value)}
+                                        />
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                ref={genericFileInputRef}
+                                                onChange={handleGenericUpload}
+                                            />
+                                            <Button
+                                                variant="secondary"
+                                                className="h-9 flex-1 text-[10px] font-bold uppercase gap-2"
+                                                onClick={() => genericFileInputRef.current?.click()}
+                                                disabled={uploading}
+                                            >
+                                                {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                                                Selecionar e Enviar
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-zinc-500 italic">O arquivo será salvo dentro do caminho base configurado acima.</p>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
