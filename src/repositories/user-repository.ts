@@ -55,8 +55,9 @@ export class UserRepository {
         return await prisma.systemSettings.update({
             where: { id: 'singleton' },
             data: {
-                whatsappEngine: data.whatsapp_engine.toUpperCase() || 'META',
+                whatsappEngine: data.whatsapp_engine?.toUpperCase() || 'META',
                 notificationsEnabled: data.notifications_enabled,
+                baseFolderPath: data.base_folder_path,
                 metaToken: data.meta_token,
                 metaPhoneId: data.meta_phone_id,
                 metaRecipientId: data.meta_recipient_id,

@@ -30,9 +30,18 @@ export class ClientRepository {
         return await prisma.client.create({
             data: {
                 name: data.name,
-                driveUrl: data.driveUrl,
-                branding: data.branding || {},
+                handle: data.handle,
+                logo: data.logo,
+                accentColor: data.accentColor,
+                primaryColor: data.primaryColor,
+                secondaryColor: data.secondaryColor,
+                industry: data.industry,
+                activeContract: data.activeContract ?? true,
+                status: data.status || "Ativo",
                 managerId: data.managerId,
+                notes: data.notes,
+                branding: data.branding || {},
+                driveUrl: data.driveUrl,
             }
         });
     }
@@ -42,9 +51,18 @@ export class ClientRepository {
             where: { id },
             data: {
                 name: data.name,
-                driveUrl: data.driveUrl,
-                branding: data.branding,
+                handle: data.handle,
+                logo: data.logo,
+                accentColor: data.accentColor,
+                primaryColor: data.primaryColor,
+                secondaryColor: data.secondaryColor,
+                industry: data.industry,
+                activeContract: data.activeContract,
                 status: data.status,
+                managerId: data.managerId,
+                notes: data.notes,
+                branding: data.branding,
+                driveUrl: data.driveUrl,
             }
         });
     }

@@ -45,6 +45,10 @@ export function NewClientDialog({ onClientCreate, children, editClient, external
     }
     const [loading, setLoading] = useState(false)
     const [name, setName] = useState("")
+    const [industry, setIndustry] = useState("Geral")
+    const [handle, setHandle] = useState("")
+    const [notes, setNotes] = useState("")
+    const [status, setStatus] = useState("Ativo")
     const [primaryColor, setPrimaryColor] = useState("#ec4899")
     const [secondaryColor, setSecondaryColor] = useState("#8b5cf6")
     const [accentColor, setAccentColor] = useState("#f59e0b")
@@ -62,6 +66,10 @@ export function NewClientDialog({ onClientCreate, children, editClient, external
     useEffect(() => {
         if (editClient && open) {
             setName(editClient.name || "")
+            setIndustry(editClient.industry || "Geral")
+            setHandle(editClient.handle || "")
+            setNotes(editClient.notes || "")
+            setStatus(editClient.status || "Ativo")
             setPrimaryColor(editClient.primaryColor || "#ec4899")
             setSecondaryColor(editClient.secondaryColor || "#8b5cf6")
             setAccentColor(editClient.accentColor || "#f59e0b")
@@ -70,6 +78,10 @@ export function NewClientDialog({ onClientCreate, children, editClient, external
         } else if (!open) {
             // Reset on close
             setName("")
+            setIndustry("Geral")
+            setHandle("")
+            setNotes("")
+            setStatus("Ativo")
             setPrimaryColor("#ec4899")
             setSecondaryColor("#8b5cf6")
             setAccentColor("#f59e0b")
@@ -241,29 +253,50 @@ export function NewClientDialog({ onClientCreate, children, editClient, external
         }
     }
 
-    const handleSave = () => {
+    const handleSave = async () => {
         setLoading(true)
-        // Simulate API call
-        setTimeout(() => {
-            const clientData: Client = {
-                id: editClient?.id || Math.random().toString(),
+        try {
+            const clientPayload = {
+                id: editClient?.id,
                 name: name || "Novo Cliente",
-                industry: editClient?.industry || "Varejo",
-                activeContract: editClient?.activeContract ?? true,
+                industry: industry,
+                activeContract: true,
                 primaryColor: primaryColor,
                 secondaryColor: secondaryColor,
-                handle: editClient?.handle || "@novo_cliente",
+                handle: handle,
+                status: status,
                 logo: editClient?.logo || "https://github.com/shadcn.png",
                 accentColor: accentColor,
                 palette: palette,
                 credentials: credentials,
-                stats: editClient?.stats || { drafts: 0, adjustments: 0, approvals: 0, approved: 0 }
+                notes: notes,
             }
-            onClientCreate(clientData)
-            setLoading(false)
+
+            const response = await fetch('/api/clients', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(clientPayload)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Erro ao salvar cliente");
+            }
+
+            const savedClient = await response.json();
+            toast.success(isEditing ? "Cliente Atualizado" : "Cliente Criado", {
+                description: `O cliente "${savedClient.name}" foi salvo com sucesso.`
+            });
+
+            onClientCreate(savedClient)
             setOpen(false)
-            setName("")
-        }, 1000)
+        } catch (error: any) {
+            toast.error("Erro ao Salvar", {
+                description: error.message
+            });
+        } finally {
+            setLoading(false)
+        }
     }
 
     return (
@@ -310,25 +343,37 @@ export function NewClientDialog({ onClientCreate, children, editClient, external
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="social">@ da principal rede social</Label>
-                                <Input id="social" placeholder="@username" className="bg-black/20 border-white/10 focus-visible:ring-primary/50" />
+                                <Input
+                                    id="social"
+                                    placeholder="@username"
+                                    className="bg-black/20 border-white/10 focus-visible:ring-primary/50"
+                                    value={handle}
+                                    onChange={(e) => setHandle(e.target.value)}
+                                />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="segmento">Segmento / Nicho</Label>
-                                <Input id="segmento" placeholder="Ex: Saúde e Bem-estar" className="bg-black/20 border-white/10 focus-visible:ring-primary/50" />
+                                <Input
+                                    id="segmento"
+                                    placeholder="Ex: Saúde e Bem-estar"
+                                    className="bg-black/20 border-white/10 focus-visible:ring-primary/50"
+                                    value={industry}
+                                    onChange={(e) => setIndustry(e.target.value)}
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="status">Status</Label>
-                                <Select defaultValue="ativo">
+                                <Select value={status} onValueChange={setStatus}>
                                     <SelectTrigger id="status" className="bg-black/20 border-white/10 focus:ring-primary/50">
                                         <SelectValue placeholder="Selecione" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-[#1c1c1e] border-white/10 text-white">
-                                        <SelectItem value="ativo">Ativo</SelectItem>
-                                        <SelectItem value="inativo">Inativo</SelectItem>
-                                        <SelectItem value="prospect">Prospect</SelectItem>
+                                        <SelectItem value="Ativo">Ativo</SelectItem>
+                                        <SelectItem value="Inativo">Inativo</SelectItem>
+                                        <SelectItem value="Prospect">Prospect</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -397,11 +442,18 @@ export function NewClientDialog({ onClientCreate, children, editClient, external
 
                         <div className="space-y-2">
                             <Label htmlFor="notas">Notas Internas</Label>
-                            <Textarea
-                                id="notas"
-                                placeholder="Observações..."
-                                className="bg-black/20 border-white/10 focus-visible:ring-primary/50 min-h-[80px]"
-                            />
+                            <div className="relative group">
+                                <Textarea
+                                    id="notas"
+                                    placeholder="Observações importantes sobre o cliente..."
+                                    className="bg-black/20 border-white/10 focus-visible:ring-primary/50 min-h-[100px] resize-none"
+                                    value={notes}
+                                    onChange={(e) => setNotes(e.target.value)}
+                                />
+                                <div className="absolute bottom-2 right-2 text-[10px] text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    Esc para sair
+                                </div>
+                            </div>
                         </div>
 
                     </TabsContent>

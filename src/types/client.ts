@@ -23,12 +23,8 @@ export type Client = {
     secondaryColor?: string
     industry: string
     activeContract: boolean
-    stats: {
-        drafts: number
-        adjustments: number
-        approvals: number
-        approved: number
-    }
+    status: string
+    notes?: string
     brandingFiles?: BrandingFile[]
     competitors?: Competitor[]
     palette?: string[]

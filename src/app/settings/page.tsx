@@ -62,10 +62,11 @@ export default function SettingsPage() {
         whatsapp_token: "",
         whatsapp_group_id: "",
         notifications_enabled: false,
-        whatsapp_engine: "EVOLUTION",
+        whatsapp_engine: "META",
         meta_phone_id: "",
         meta_token: "",
-        meta_recipient_id: ""
+        meta_recipient_id: "",
+        base_folder_path: ""
     })
     const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -73,19 +74,31 @@ export default function SettingsPage() {
     const formRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
-        const fetchUsers = async () => {
+        const fetchData = async () => {
             try {
-                const res = await fetch('/api/admin/users');
+                const res = await fetch('/api/settings');
                 if (res.ok) {
-                    const data = await res.json();
-                    setUsers(data);
+                    const { users: fetchedUsers, settings } = await res.json();
+                    setUsers(fetchedUsers || []);
+                    if (settings) {
+                        setWhatsappSettings({
+                            whatsapp_api_url: settings.evolutionUrl || "",
+                            whatsapp_token: settings.evolutionToken || "",
+                            whatsapp_group_id: settings.evolutionGroupId || "",
+                            notifications_enabled: settings.notificationsEnabled ?? false,
+                            whatsapp_engine: settings.whatsappEngine?.toLowerCase() || "META",
+                            meta_phone_id: settings.metaPhoneId || "",
+                            meta_token: settings.metaToken || "",
+                            meta_recipient_id: settings.metaRecipientId || "",
+                            base_folder_path: settings.baseFolderPath || ""
+                        });
+                    }
                 }
             } catch (error) {
-                console.error("Erro ao carregar usuários:", error);
+                console.error("Erro ao carregar dados:", error);
             }
         };
-        fetchUsers();
-        setWhatsappSettings(DataService.getSettings())
+        fetchData();
     }, [])
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -136,11 +149,28 @@ export default function SettingsPage() {
         setLoading(true)
 
         try {
-            // Em uma app real, usaríamos o endpoint de criação
-            // Como o foco agora é a aprovação, vamos focar no gerenciamento da lista
-            toast.success("Dados salvos com sucesso!")
-        } catch (error) {
-            toast.error("Erro ao salvar dados")
+            const res = await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: editingId,
+                    name: newUser.name,
+                    email: newUser.email,
+                    whatsapp: newUser.whatsapp,
+                    role: newUser.role,
+                    avatar: newUser.avatar
+                })
+            });
+
+            if (res.ok) {
+                toast.success("Usuário salvo com sucesso!")
+                window.location.reload();
+            } else {
+                const err = await res.json();
+                throw new Error(err.error);
+            }
+        } catch (error: any) {
+            toast.error("Erro ao salvar usuário: " + error.message)
         } finally {
             setLoading(false)
         }
@@ -148,7 +178,7 @@ export default function SettingsPage() {
 
     const toggleUserStatus = async (id: string, currentStatus: boolean) => {
         try {
-            const res = await fetch('/api/admin/users', {
+            const res = await fetch('/api/settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, active: !currentStatus })
@@ -193,7 +223,7 @@ export default function SettingsPage() {
     const confirmDeleteUser = async () => {
         if (deleteConfirm.userId) {
             try {
-                const res = await fetch('/api/admin/users', {
+                const res = await fetch('/api/settings', {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id: deleteConfirm.userId })
@@ -228,9 +258,25 @@ export default function SettingsPage() {
         window.location.reload()
     }
 
-    const handleSaveSettings = () => {
-        DataService.saveSettings(whatsappSettings)
-        toast.success("Configurações salvas com sucesso!")
+    const handleSaveSettings = async () => {
+        try {
+            const res = await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'update_settings',
+                    ...whatsappSettings
+                })
+            });
+
+            if (res.ok) {
+                toast.success("Configurações salvas com sucesso!")
+            } else {
+                throw new Error("Erro ao salvar");
+            }
+        } catch (error) {
+            toast.error("Falha ao salvar preferências");
+        }
     }
 
     return (
@@ -555,6 +601,37 @@ export default function SettingsPage() {
                     <Card className="bg-[#0A0A0A]/80 backdrop-blur-xl border-white/5">
                         <CardHeader>
                             <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                <Briefcase className="h-4 w-4 text-primary" />
+                                Gestão de Arquivos
+                            </CardTitle>
+                            <CardDescription className="text-[10px]">Configure onde as pastas dos clientes serão criadas localmente.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label className="text-[10px] uppercase font-bold text-zinc-500">Caminho Base das Pastas (Local)</Label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        placeholder="Ex: /Users/rafa/Documents/Clientes"
+                                        className="h-9 bg-white/5 border-white/10 text-sm"
+                                        value={whatsappSettings.base_folder_path || ""}
+                                        onChange={(e) => setWhatsappSettings({ ...whatsappSettings, base_folder_path: e.target.value })}
+                                    />
+                                    <Button
+                                        variant="outline"
+                                        className="h-9 border-white/10 text-[10px] font-bold uppercase transition-all hover:bg-white/5"
+                                        onClick={handleSaveSettings}
+                                    >
+                                        Salvar
+                                    </Button>
+                                </div>
+                                <p className="text-[10px] text-zinc-500 italic">Deixe vazio para usar a pasta raiz do projeto.</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="bg-[#0A0A0A]/80 backdrop-blur-xl border-white/5">
+                        <CardHeader>
+                            <CardTitle className="text-sm font-bold flex items-center gap-2">
                                 <SettingsIcon className="h-4 w-4 text-primary" />
                                 Geral do Sistema
                             </CardTitle>
@@ -562,8 +639,8 @@ export default function SettingsPage() {
                         <CardContent className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-2">
-                                    <h4 className="text-xs font-bold text-zinc-300">Backup dos Dados</h4>
-                                    <p className="text-[10px] text-zinc-500">Todos os dados são salvos localmente no seu navegador.</p>
+                                    <h4 className="text-xs font-bold text-zinc-300">Exportar Backup</h4>
+                                    <p className="text-[10px] text-zinc-500">Gere um arquivo JSON com todos os dados atuais.</p>
                                     <Button variant="outline" size="sm" className="h-8 border-white/10 text-[10px] font-bold uppercase transition-all hover:bg-white/5" onClick={() => {
                                         const data = localStorage.getItem("sf-demands")
                                         const blob = new Blob([data || ""], { type: "application/json" })

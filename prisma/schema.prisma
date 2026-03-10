@@ -57,17 +57,25 @@ model User {
 }
 
 model Client {
-  id            String    @id @default(cuid())
-  name          String
-  status        String    @default("Ativo")
-  managerId     String?
-  manager       User?     @relation("ClientManager", fields: [managerId], references: [id])
-  driveUrl      String?
-  branding      Json?     
-  demands       Demand[]
-  transactions  Transaction[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  name            String
+  handle          String?
+  logo            String?
+  accentColor     String?
+  primaryColor    String?
+  secondaryColor  String?
+  industry        String?
+  activeContract  Boolean   @default(true)
+  status          String    @default("Ativo")
+  managerId       String?
+  manager         User?     @relation("ClientManager", fields: [managerId], references: [id])
+  driveUrl        String?
+  branding        Json?     
+  notes           String?
+  demands         Demand[]
+  transactions    Transaction[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model Demand {
@@ -121,6 +129,7 @@ model SystemSettings {
   id                   String         @id @default("singleton")
   whatsappEngine       WhatsAppEngine @default(META)
   notificationsEnabled Boolean        @default(true)
+  baseFolderPath       String?
   
   metaToken           String?
   metaPhoneId         String?
@@ -132,3 +141,4 @@ model SystemSettings {
 
   updatedAt          DateTime       @updatedAt
 }
+
